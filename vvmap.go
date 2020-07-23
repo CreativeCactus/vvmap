@@ -17,17 +17,18 @@ type VVDot struct {
 	Version  uint64
 }
 
-// ChooseLeftConflictResolver is a function which returns
-// whether the left Record should be used to resolve
-// the conflict. It can be assumed that left
-// and right have the same key. This must deterministically choose the
-// same item no matter the order.
-type ChooseLeftConflictResolver func(key string, left, right Record) bool
+// Content represents the value type of a Record
+type Content interface{}
+
+// DeterministicConflictResolver is a function which
+// returns a deterministic value, given two conflicting records.
+// The order of the records (left, right) is not deterministic.
+type DeterministicConflictResolver func(key string, left, right Record) Record
 
 // Record is a record stored in a VVMap
 type Record struct {
 	Key   string
-	Value interface{}
+	Value Content
 	Dot   VVDot
 }
 
@@ -40,14 +41,14 @@ type Delta struct {
 
 // Map is a delta based CRDT map
 type Map struct {
-	resolver ChooseLeftConflictResolver
+	resolver DeterministicConflictResolver
 	storage  map[string]Record
 	version  VersionVector
 	me       ID
 }
 
 // New returns a new Map with the specified ID and conflict resolver
-func New(id ID, resolver ChooseLeftConflictResolver) *Map {
+func New(id ID, resolver DeterministicConflictResolver) *Map {
 	return &Map{resolver: resolver, storage: make(map[string]Record), version: make(VersionVector), me: id}
 }
 
@@ -119,11 +120,7 @@ func (v *Map) Merge(delta Delta) {
 			continue
 		}
 
-		if v.resolver(local.Key, local, record) {
-			v.storage[record.Key] = local
-		} else {
-			v.storage[record.Key] = record
-		}
+		v.storage[record.Key] = v.resolver(local.Key, local, record)
 	}
 
 	for id, version := range delta.current {

@@ -6,7 +6,7 @@ import (
 	"testing"
 )
 
-var alwaysLeftResolver ChooseLeftConflictResolver = func(_ string, _, _ Record) bool { return true }
+var alwaysLeftResolver DeterministicConflictResolver = func(_ string, left, _ Record) Record { return left }
 
 func TestSetIncrementsVersion(t *testing.T) {
 	vm := New("test", alwaysLeftResolver)
@@ -32,9 +32,9 @@ func TestGetReturnsSetValue(t *testing.T) {
 
 func TestMergeUsesResolverFunc(t *testing.T) {
 	resolverInvoked := false
-	testResolver := func(key string, left, right Record) bool {
+	testResolver := func(key string, left, right Record) Record {
 		resolverInvoked = true
-		return true
+		return left
 	}
 
 	alice := New("alice", testResolver)
@@ -54,10 +54,13 @@ func Example() {
 	bobID := ID("bob")
 	timID := ID("tim")
 
-	lexicographicResolver := func(key string, left, right Record) bool {
+	lexicographicResolver := func(key string, left, right Record) Record {
 		leftVal := left.Value.(string)
 		rightVal := right.Value.(string)
-		return strings.Compare(leftVal, rightVal) > 0 // choose left if lexicographically greater
+		if strings.Compare(leftVal, rightVal) > 0 { // choose left if lexicographically greater
+			return left
+		}
+		return right
 	}
 
 	alice := New(aliceID, lexicographicResolver)

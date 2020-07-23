@@ -1,4 +1,6 @@
-# vvmap [![GoDoc](https://godoc.org/github.com/hankjacobs/vv?status.png)](https://godoc.org/github.com/hankjacobs/vv)
+# vvmap [![GoDoc](https://godoc.org/github.com/CreativeCactus/vv?status.png)](https://godoc.org/github.com/CreativeCactus/vv)
+
+This is a subtly modified fork of (hankjacobs' implementation](https://github.com/hankjacobs/vvmap) which allows for more flexible conflict resolution.
 
 vvmap is a [Go](http://www.golang.org) implementation of a delta-based CRDT map as written about in ["∆-CRDTs: Making δ-CRDTs Delta-Based"](http://nova-lincs.di.fct.unl.pt/system/publication_files/files/000/000/666/original/a12-van_der_linde.pdf?1483708753), ["Dotted Version Vectors: Logical Clocks for Optimistic Replication"](https://arxiv.org/pdf/1011.5808.pdf), and Tyler McMullen's excellent talk ["The Anatomy of a Distributed System"](https://www.infoq.com/presentations/health-distributed-system).  
 
@@ -14,10 +16,13 @@ import (
 )
 
 func main() {
-	lexicographicConflictResolver := func(key string, left, right vvmap.Record) bool {
+	lexicographicConflictResolver := func(key string, left, right vvmap.Record) vvmap.Record {
 		leftVal := left.Value.(string)
 		rightVal := right.Value.(string)
-		return strings.Compare(leftVal, rightVal) > 0 // choose left if lexicographically greater
+        if strings.Compare(leftVal, rightVal) > 0 { // choose left if lexicographically greater
+            return left
+        }
+        return right
 	}
 
 	alice := vvmap.New("alice", lexicographicConflictResolver)

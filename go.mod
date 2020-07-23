@@ -1,1 +1,1 @@
-module github.com/hankjacobs/vvmap
+module github.com/creativecactus/vvmap
